@@ -16,6 +16,7 @@ var through2 = require('through2');
 var q = require('q');
 var fs = require('fs');
 var _ = require('lodash');
+var sauceConnectLauncher = require('sauce-connect-launcher');
 
 module.exports = function(grunt) {
 
@@ -24,6 +25,16 @@ module.exports = function(grunt) {
     var specs = [];
     var retriedSpecs = {};
     var counter = {};
+
+    // sauce
+    var port = 14796 + Math.floor(Math.random() * 100) + 1;
+
+    // shouldnt do this but let's add prefix
+    var w2g_sauceConnector = null;
+    var w2g_scTunnelIdentifier = 'w2g_deploy_' + port;
+    var w2g_scPort = port;
+
+
     // '.../node_modules/protractor/lib/protractor.js'
     var protractorMainPath = require.resolve('protractor');
     // '.../node_modules/protractor/bin/protractor'
@@ -41,7 +52,12 @@ module.exports = function(grunt) {
       args: {},
       output: false,
       retry: 0,
-      saucelab: false
+      saucelab: {
+        launcher: false,
+        sauceUser: null,
+        sauceKey: null,
+        sauceSeleniumAddress: 'localhost:' + global.w2g_scPort + '/wd/hub',
+      }
     });
 
     // configFile is a special property which need not to be in options{} object.
@@ -158,9 +174,9 @@ module.exports = function(grunt) {
 
                 if (retriedSpecs[specFile] < opts.retry) {
                   console.log(retriedSpecs[specFile], opts.retry)
-                  // retryQueue.push(specFile);
-                  // retry is one and not meet the maximum attempt
-                  // increase retry attempt
+                    // retryQueue.push(specFile);
+                    // retry is one and not meet the maximum attempt
+                    // increase retry attempt
                   retriedSpecs[specFile] += 1;
                   def.resolve(true, specFile);
                 } else {
@@ -214,12 +230,37 @@ module.exports = function(grunt) {
       counter[spec] = true;
     });
 
-    if (opts.saucelab) {
-      // launch as saucelabs
-      // TODO: finish it
+    var chain = q();
+
+    if (opts.saucelab && opts.saucelab.launcher === true) {
+      console.log('launch sauce')
+        // launch as saucelabs
+        // TODO: finish it
+      chain = chain
+        .then(function() {
+          var def = q.defer();
+
+          // use port 14796 to avoid conflict the default
+          sauceConnectLauncher({
+            username: opts.saucelab.sauceUser,
+            accessKey: opts.saucelab.sauceKey,
+            verbose: true,
+            port: w2g_scPort,
+            tunnelIdentifier: w2g_scTunnelIdentifier,
+            readyFileId: w2g_scTunnelIdentifier
+          }, function(err, sauceConnectProcess) {
+            console.log(err, sauceConnectProcess)
+            def.resolve(sauceConnectProcess);
+          });
+
+          return def.promise;
+        })
+        .then(function(sauceConnectProcess) {
+          w2g_sauceConnector = sauceConnectProcess;
+        });
     }
 
-    var chain = q();
+
 
     var reChain = function(chain, spec) {
       return chain
@@ -234,7 +275,26 @@ module.exports = function(grunt) {
             delete counter[spec];
             if (_.size(counter) === 0) {
               // end up grunt process
-              done();
+              // end up sauce connector
+              if (opts.saucelab && opts.saucelab.launcher === true) {
+                chain
+                  .then(function() {
+
+                    // if connected to saucelabs
+                    if (w2g_sauceConnector) {
+                      var def = q.defer();
+                      w2g_sauceConnector.close(def.resolve);
+
+                      return def.promise;
+                    }
+                  })
+                  .then(function() {
+                    done();
+                  });
+              } else {
+                done();
+              }
+
             }
           }
         });

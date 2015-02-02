@@ -33,7 +33,8 @@
     "protractor": "^1.0.0",
     "split": "~0.3.0",
     "through2": "~0.5.1",
-    "walk": "^2.3.9"
+    "walk": "^2.3.9",
+    "sauce-connect-launcher": "^0.9.3"
   },
   "devDependencies": {
     "nexpect": "~0.4.0",
