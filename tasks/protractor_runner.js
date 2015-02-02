@@ -56,7 +56,7 @@ module.exports = function(grunt) {
         launcher: false,
         sauceUser: null,
         sauceKey: null,
-        sauceSeleniumAddress: 'localhost:' + global.w2g_scPort + '/wd/hub',
+        saucePort: null
       }
     });
 
@@ -245,11 +245,10 @@ module.exports = function(grunt) {
             username: opts.saucelab.sauceUser,
             accessKey: opts.saucelab.sauceKey,
             verbose: true,
-            port: w2g_scPort,
+            port: opts.saucelab.saucePort,
             tunnelIdentifier: w2g_scTunnelIdentifier,
             readyFileId: w2g_scTunnelIdentifier
           }, function(err, sauceConnectProcess) {
-            console.log(err, sauceConnectProcess)
             def.resolve(sauceConnectProcess);
           });
 
