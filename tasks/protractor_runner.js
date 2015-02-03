@@ -31,8 +31,8 @@ module.exports = function(grunt) {
 
     // shouldnt do this but let's add prefix
     var w2g_sauceConnector = null;
-    var w2g_scTunnelIdentifier = 'w2g_deploy_' + port;
-    var w2g_scPort = port;
+    // var w2g_scTunnelIdentifier = 'w2g_deploy_' + port;
+    // var w2g_scPort = port;
 
 
     // '.../node_modules/protractor/lib/protractor.js'
@@ -246,8 +246,8 @@ module.exports = function(grunt) {
             accessKey: opts.saucelab.sauceKey,
             verbose: true,
             port: opts.saucelab.saucePort,
-            tunnelIdentifier: w2g_scTunnelIdentifier,
-            readyFileId: w2g_scTunnelIdentifier
+            tunnelIdentifier: opts.saucelab.sauceTunnelIdentifier,
+            readyFileId: opts.saucelab.sauceTunnelIdentifier
           }, function(err, sauceConnectProcess) {
             def.resolve(sauceConnectProcess);
           });
