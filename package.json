@@ -34,7 +34,8 @@
     "split": "~0.3.0",
     "through2": "~0.5.1",
     "walk": "^2.3.9",
-    "sauce-connect-launcher": "^0.9.3"
+    "sauce-connect-launcher": "^0.9.3",
+    "q": "^1.1.2"
   },
   "devDependencies": {
     "nexpect": "~0.4.0",
