@@ -1,8 +1,8 @@
 /*
  * grunt-protractor-runner
- * https://github.com/teerapap/grunt-protractor-runner
+ * fork of https://github.com/teerapap/grunt-protractor-runner
  *
- * Copyright (c) 2013 Teerapap Changwichukarn
+ * Copyright (c) 2015 Archlich@office
  * Licensed under the MIT license.
  */
 
@@ -17,6 +17,8 @@ var q = require('q');
 var fs = require('fs');
 var _ = require('lodash');
 var sauceConnectLauncher = require('sauce-connect-launcher');
+var request = require('request');
+var querystring = require('querystring');
 
 module.exports = function(grunt) {
 
@@ -25,6 +27,8 @@ module.exports = function(grunt) {
     var specs = [];
     var retriedSpecs = {};
     var counter = {};
+    var ts_jobid = null;
+    var ts_resultid = null;
 
     // sauce
     var port = 14796 + Math.floor(Math.random() * 100) + 1;
@@ -57,6 +61,15 @@ module.exports = function(grunt) {
         sauceUser: null,
         sauceKey: null,
         saucePort: null
+      },
+      testswarm: {
+        testswarmHost: null,
+        testswarmPath: null,
+        testswarmToken: null,
+        testswarmKey: null,
+        jobName: null,
+        buildId: null,
+        browserSets: null
       }
     });
 
@@ -161,7 +174,6 @@ module.exports = function(grunt) {
 
         var child = grunt.util.spawn(cmd, function(err, result, code) {
 
-          // console.log(err, code, retryQueue, retriedSpecs, opts.retry, specFile)
           if (err) {
             grunt.log.error(String(result));
             if (code === 1 && keepAlive) {
@@ -173,26 +185,24 @@ module.exports = function(grunt) {
                 }
 
                 if (retriedSpecs[specFile] < opts.retry) {
-                  console.log(retriedSpecs[specFile], opts.retry)
-                    // retryQueue.push(specFile);
-                    // retry is one and not meet the maximum attempt
-                    // increase retry attempt
+                  // retry is one and not meet the maximum attempt
+                  // increase retry attempt
                   retriedSpecs[specFile] += 1;
-                  def.resolve(true, specFile);
+                  def.resolve([true, specFile]);
                 } else {
-                  def.resolve(specFile);
+                  def.resolve([code, specFile]);
                 }
 
               } else {
-                def.resolve(specFile);
+                def.resolve([code, specFile]);
               }
 
             } else {
               grunt.fail.fatal('protractor exited with code: ' + code, 3);
-              def.resolve(specFile);
+              def.resolve([code, specFile]);
             }
           } else {
-            def.resolve(specFile);
+            def.resolve([code, specFile]);
           }
         });
 
@@ -233,9 +243,52 @@ module.exports = function(grunt) {
     var chain = q();
 
     if (opts.saucelab && opts.saucelab.launcher === true) {
-      console.log('launch sauce')
-        // launch as saucelabs
-        // TODO: finish it
+      grunt.log.writeln('launch sauce');
+      // launch as saucelabs
+      // TODO: finish it
+      if (opts.testswarm && opts.testswarm.testswarmHost) {
+        // init testswarm task creation here
+        grunt.log.writeln('create job on testswarm');
+        // var j = opts;
+        chain = chain
+          .then(function() {
+            var def = q.defer();
+            var uri = 'http://' + opts.testswarm.testswarmHost + '/' + opts.testswarm.testswarmPath + '/api.php?action=addjob';
+
+            var body = {
+              authID: opts.testswarm.testswarmKey,
+              authToken: opts.testswarm.testswarmToken,
+              buildId: opts.testswarm.buildId,
+              jobName: opts.testswarm.jobName,
+              runMax: 3,
+              runNames: [],
+              runUrls: [],
+              browserSets: opts.testswarm.browserSets,
+            };
+
+            var data = querystring.stringify(body);
+
+            var reqopts = {
+              uri: uri,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': data.length
+              },
+              body: data
+            };
+
+            request(reqopts, function(err, resp, body) {
+              def.resolve(body);
+            });
+
+            return def.promise;
+          })
+          .then(function(body) {
+            ts_jobid = JSON.parse(body).addjob.id;
+          });
+      }
+
       chain = chain
         .then(function() {
           var def = q.defer();
@@ -263,19 +316,112 @@ module.exports = function(grunt) {
 
     var reChain = function(chain, spec) {
       return chain
+        .then(function() {
+          if (!retriedSpecs[spec]) {
+            if (opts.saucelab && opts.saucelab.launcher === true) {
+              // current case is pass
+              if (opts.testswarm && opts.testswarm.testswarmHost) {
+                chain = chain.then(function() {
+                    // first time, set up testswarm task
+                    var def = q.defer();
+                    var uri = 'http://' + opts.testswarm.testswarmHost + '/' + opts.testswarm.testswarmPath + '/api.php?action=starttest';
+
+                    var body = {
+                      authID: opts.testswarm.testswarmKey,
+                      authToken: opts.testswarm.testswarmToken,
+                      job_id: ts_jobid,
+                      test_name: spec,
+                      runUrls: [],
+                      ua_id: opts.testswarm.browserSets[0],
+                    };
+
+                    var data = querystring.stringify(body);
+
+                    var reqopts = {
+                      uri: uri,
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Length': data.length
+                      },
+                      body: data
+                    };
+
+                    request(reqopts, function(err, resp, body) {
+                      def.resolve(body);
+                    });
+
+                    return def.promise;
+                  })
+                  .then(function(body) {
+                    ts_resultid = JSON.parse(body).starttest.resultsId;
+                  });
+              }
+            }
+          }
+        })
         .then(promiseCb(spec))
-        .then(function(specFile) {
-          if (specFile === true) {
+        .then(function(resultCol) {
+
+          if (resultCol[0] === true) {
             // retry the chain
-            console.log('-----------------------------> push', spec, 'back to queue');
+            grunt.log.writeln('-----------------------------> push', spec, 'back to queue');
             return reChain(chain, spec);
           } else {
             // succeed or end test
             delete counter[spec];
+            if (opts.saucelab && opts.saucelab.launcher === true) {
+              // current case is pass
+              if (opts.testswarm && opts.testswarm.testswarmHost) {
+                // finish up testswarm
+                grunt.log.writeln('finish job on testswarm');
+                // var j = opts;
+                chain = chain
+                  .then(function() {
+                    var def = q.defer();
+                    var uri = 'http://' + opts.testswarm.testswarmHost + '/' + opts.testswarm.testswarmPath + '/api.php?action=finishtest';
+
+                    var body = {
+                      authID: opts.testswarm.testswarmKey,
+                      authToken: opts.testswarm.testswarmToken,
+                      job_id: ts_jobid,
+                      test_name: resultCol[1],
+                      total: 1,
+                      fail: resultCol[0], // TODO: 
+                      runUrls: [],
+                      ua_id: opts.testswarm.browserSets[0],
+                    };
+
+                    var data = querystring.stringify(body);
+
+                    var reqopts = {
+                      uri: uri,
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Length': data.length
+                      },
+                      body: data
+                    };
+
+                    request(reqopts, function(err, resp, body) {
+                      def.resolve(body);
+                    });
+
+                    return def.promise;
+                  })
+                  .then(function(body) {
+                    ts_resultid = null;
+                  });
+              }
+            }
+
             if (_.size(counter) === 0) {
               // end up grunt process
               // end up sauce connector
               if (opts.saucelab && opts.saucelab.launcher === true) {
+
+                // disconnect sauce connector
                 chain
                   .then(function() {
 
@@ -301,7 +447,7 @@ module.exports = function(grunt) {
 
     while (retryQueue.length > 0) {
       var cmd = retryQueue.shift();
-      console.log('-----------------------------> push', cmd, 'to queue');
+      grunt.log.writeln('-----------------------------> push', cmd, 'to queue');
       chain = reChain(chain, cmd);
     }
 
