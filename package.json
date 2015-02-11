@@ -31,11 +31,12 @@
   "dependencies": {
     "lodash": "^3.0.1",
     "protractor": "^1.0.0",
+    "q": "^1.1.2",
+    "request": "^2.53.0",
+    "sauce-connect-launcher": "^0.9.3",
     "split": "~0.3.0",
     "through2": "~0.5.1",
-    "walk": "^2.3.9",
-    "sauce-connect-launcher": "^0.9.3",
-    "q": "^1.1.2"
+    "walk": "^2.3.9"
   },
   "devDependencies": {
     "nexpect": "~0.4.0",
