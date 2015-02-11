@@ -424,7 +424,11 @@ module.exports = function(grunt) {
                 // disconnect sauce connector
                 chain
                   .then(function() {
-
+                    if (opts.testswarm && opts.testswarm.testswarmHost) {
+                      grunt.log.writeln('===================== testswarm report generated =====================');
+                      grunt.log.writeln(util.format('http://$s/%s/job/%d', opts.testswarm.testswarmHost, opts.testswarm.testswarmPath, ts_jobid));
+                      grunt.log.writeln('======================================================================');
+                    }
                     // if connected to saucelabs
                     if (w2g_sauceConnector) {
                       var def = q.defer();
