@@ -174,12 +174,12 @@ module.exports = function(grunt) {
 
         var child = grunt.util.spawn(cmd, function(err, result, code) {
           console.log('=================>> error captured when running case', String(result));
-          console.log('=================>> error captured when running case', err);
-          console.log('=================>> error captured when running case', code);
-          console.log('=================>> error captured when running case', keepAlive);
-          console.log('=================>> error captured when running case', opts.retry);
-          console.log('=================>> error captured when running case', specFile);
-          console.log('=================>> error captured when running case', retriedSpecs[specFile]);
+          console.log('=================>> err ', err);
+          console.log('=================>> code', code);
+          console.log('=================>> keepalive', keepAlive);
+          console.log('=================>> opts.retry', opts.retry);
+          console.log('=================>> specfile', specFile);
+          console.log('=================>> retriedSpecs[specFile]', retriedSpecs[specFile]);
           if (err) {
 
             if (code === 1 && keepAlive) {
