@@ -173,8 +173,13 @@ module.exports = function(grunt) {
         var def = q.defer();
 
         var child = grunt.util.spawn(cmd, function(err, result, code) {
-          grunt.log.error('=================>> error captured when running case', String(result),
-            err, code, keepAlive, opts.retry, specFile, retriedSpecs[specFile]);
+          console.log('=================>> error captured when running case', String(result));
+          console.log('=================>> error captured when running case', err);
+          console.log('=================>> error captured when running case', code);
+          console.log('=================>> error captured when running case', keepAlive);
+          console.log('=================>> error captured when running case', opts.retry);
+          console.log('=================>> error captured when running case', specFile);
+          console.log('=================>> error captured when running case', retriedSpecs[specFile]);
           if (err) {
 
             if (code === 1 && keepAlive) {
