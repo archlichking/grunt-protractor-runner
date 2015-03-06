@@ -173,10 +173,10 @@ module.exports = function(grunt) {
         var def = q.defer();
 
         var child = grunt.util.spawn(cmd, function(err, result, code) {
-
+          grunt.log.error('=================>> error captured when running case', String(result),
+            err, code, keepAlive, opts.retry, specFile, retriedSpecs[specFile]);
           if (err) {
-            grunt.log.error('=================>> error captured when running case', String(result),
-              err, code, keepAlive, opts.retry, specFile, retriedSpecs[specFile]);
+
             if (code === 1 && keepAlive) {
               // Test fails but do not want to stop the grunt process.
               grunt.log.oklns("Test failed but keep the grunt process alive.");
