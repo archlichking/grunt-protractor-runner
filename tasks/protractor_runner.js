@@ -181,8 +181,8 @@ module.exports = function(grunt) {
           console.log('=================>> specfile', specFile);
           console.log('=================>> retriedSpecs[specFile]', retriedSpecs[specFile]);
           if (err) {
-
-            if (code === 1 && keepAlive) {
+            console.log(code)
+            if (code === 0 && keepAlive) {
               // Test fails but do not want to stop the grunt process.
               grunt.log.oklns("Test failed but keep the grunt process alive.");
               if (opts.retry) {
