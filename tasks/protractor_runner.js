@@ -180,35 +180,32 @@ module.exports = function(grunt) {
           console.log('=================>> opts.retry', opts.retry);
           console.log('=================>> specfile', specFile);
           console.log('=================>> retriedSpecs[specFile]', retriedSpecs[specFile]);
-          if (err) {
-            if (code === 1 && keepAlive) {
-              // Test fails but do not want to stop the grunt process.
-              grunt.log.oklns("Test failed but keep the grunt process alive.");
-              if (opts.retry) {
-                if (!retriedSpecs[specFile]) {
-                  retriedSpecs[specFile] = 0;
-                }
+          if (code !== 0) {
+            // Test fails but do not want to stop the grunt process.
+            grunt.log.error("Test failed but keep the grunt process alive.");
+            if (opts.retry) {
+              if (!retriedSpecs[specFile]) {
+                retriedSpecs[specFile] = 0;
+              }
 
-                if (retriedSpecs[specFile] < opts.retry) {
-                  // retry is one and not meet the maximum attempt
-                  // increase retry attempt
-                  retriedSpecs[specFile] += 1;
-                  def.resolve([true, specFile]);
-                } else {
-                  def.resolve([code, specFile]);
-                }
-
+              if (retriedSpecs[specFile] < opts.retry) {
+                // retry is one and not meet the maximum attempt
+                // increase retry attempt
+                retriedSpecs[specFile] += 1;
+                def.resolve([true, specFile]);
               } else {
                 def.resolve([code, specFile]);
               }
 
             } else {
-              grunt.log.error('Test failed with unexpected error code: ' + code);
               def.resolve([code, specFile]);
             }
+
           } else {
+            grunt.log.oklns('Test passed' + code);
             def.resolve([code, specFile]);
           }
+
         });
 
 
