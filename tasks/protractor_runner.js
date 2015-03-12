@@ -181,8 +181,7 @@ module.exports = function(grunt) {
           console.log('=================>> specfile', specFile);
           console.log('=================>> retriedSpecs[specFile]', retriedSpecs[specFile]);
           if (err) {
-            console.log(code)
-            if (code === 0 && keepAlive) {
+            if (code === 1 && keepAlive) {
               // Test fails but do not want to stop the grunt process.
               grunt.log.oklns("Test failed but keep the grunt process alive.");
               if (opts.retry) {
@@ -204,7 +203,7 @@ module.exports = function(grunt) {
               }
 
             } else {
-              grunt.fail.fatal('protractor exited with code: ' + code, 3);
+              grunt.log.error('Test failed with unexpected error code: ' + code);
               def.resolve([code, specFile]);
             }
           } else {
