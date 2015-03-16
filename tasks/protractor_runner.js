@@ -19,6 +19,7 @@ var _ = require('lodash');
 var sauceConnectLauncher = require('sauce-connect-launcher');
 var request = require('request');
 var querystring = require('querystring');
+var spawn = require('child_process').spawn;
 
 module.exports = function(grunt) {
 
@@ -162,24 +163,28 @@ module.exports = function(grunt) {
         var vargs = _.clone(args);
         vargs.push('--specs', specFile);
 
-        var cmd = {
-          cmd: opts.nodeBin,
-          args: vargs,
-          opts: {
-            stdio: 'pipe'
-          }
-        };
-
         var def = q.defer();
 
-        var child = grunt.util.spawn(cmd, function(err, result, code) {
-          console.log('=================>> error captured when running case', String(result));
-          console.log('=================>> err ', err);
-          console.log('=================>> code', code);
-          console.log('=================>> keepalive', keepAlive);
-          console.log('=================>> opts.retry', opts.retry);
-          console.log('=================>> specfile', specFile);
-          console.log('=================>> retriedSpecs[specFile]', retriedSpecs[specFile]);
+        console.log('================> initializing child process ', retriedSpecs[specFile] ? retriedSpecs[specFile] : 0, ' time');
+        var child = spawn(opts.nodeBin, vargs, {
+          stdio: 'inherit'
+        });
+
+        child.on('close', function(code) {
+          console.log('================> code', code);
+          if (code !== 0) {
+            // Test fails but do not want to stop the grunt process.
+            grunt.log.error("Test failed but keep the grunt process alive.");
+          }
+        });
+
+        child.on('error', function() {
+          console.log('in on the error')
+          def.resolve([250, specFile]);
+        });
+
+        child.on('exit', function(code) {
+          console.log('================> in exit code', code);
           if (code !== 0) {
             // Test fails but do not want to stop the grunt process.
             grunt.log.error("Test failed but keep the grunt process alive.");
@@ -202,35 +207,13 @@ module.exports = function(grunt) {
             }
 
           } else {
-            grunt.log.oklns('Test passed' + code);
+            grunt.log.oklns('Test passed ' + code);
             def.resolve([code, specFile]);
           }
-
         });
 
+        console.log('================> leaving child grunt ', retriedSpecs[specFile] ? retriedSpecs[specFile] : 0, ' running');
 
-        process.stdin.pipe(child.stdin);
-        child.stdout.pipe(process.stdout);
-        child.stderr.pipe(process.stderr);
-        // Write the result in the output file
-        if (!grunt.util._.isUndefined(opts.output) && opts.output !== false) {
-
-          grunt.log.writeln("Output test result to: " + opts.output);
-
-          grunt.file.mkdir(path.dirname(opts.output));
-
-          child.stdout
-            .pipe(split())
-            .pipe(through2(function(chunk, encoding, callback) {
-              if ((/^Using the selenium server at/).test(chunk.toString())) {
-                // skip
-              } else {
-                this.push(chunk + '\n');
-              }
-              callback();
-            }))
-            .pipe(fs.createWriteStream(opts.output));
-        }
         return def.promise;
       }
     }
@@ -448,6 +431,8 @@ module.exports = function(grunt) {
 
             }
           }
+        }, function(err) {
+          console.log('shouldnt be at here, ', err);
         });
     };
 
