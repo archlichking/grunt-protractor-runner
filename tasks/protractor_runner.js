@@ -168,7 +168,7 @@ module.exports = function(grunt) {
         console.log('================> initializing child process ', retriedSpecs[specFile] ? retriedSpecs[specFile] : 0, ' time');
         var child = exec(opts.nodeBin + " " + vargs.join(' '), {
           encoding: 'utf8',
-          timeout: 200000,
+          timeout: 400000,
           killSignal: 'SIGTERM'
         }, function(err, stdout, stderr) {
           console.log(stdout);
