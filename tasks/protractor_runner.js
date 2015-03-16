@@ -173,6 +173,7 @@ module.exports = function(grunt) {
         }, function(err, stdout, stderr) {
           console.log(stdout);
           if (err) {
+            console.log(err);
             grunt.log.error("Test failed but keep the grunt process alive.");
             if (opts.retry) {
               if (!retriedSpecs[specFile]) {
