@@ -185,16 +185,16 @@ module.exports = function(grunt) {
                 retriedSpecs[specFile] += 1;
                 def.resolve([true, specFile]);
               } else {
-                def.resolve([code, specFile]);
+                def.resolve([1, specFile]);
               }
 
             } else {
-              def.resolve([code, specFile]);
+              def.resolve([1, specFile]);
             }
 
           } else {
-            grunt.log.oklns('Test passed ' + code);
-            def.resolve([code, specFile]);
+            grunt.log.oklns('===========> Test passed');
+            def.resolve([0, specFile]);
           }
 
         });
